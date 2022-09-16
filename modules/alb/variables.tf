@@ -2,6 +2,13 @@ variable "env" { }
 
 variable "project" { }
 
-variable "sg" { }
 
 variable "domain" { }
+
+variable "vpc_id" {
+  
+}
+
+variable "subnets" {
+  
+}

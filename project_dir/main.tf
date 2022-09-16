@@ -22,7 +22,9 @@ module "asg" {
   key           = var.key_name
   sns_topic_name = var.sns_topic_name
   image_name = var.image_name
-
+  depends_on = [
+    module.alb
+  ]
 }
 
 
@@ -33,7 +35,7 @@ resource "aws_iam_role" "codedeploy" {
     description           = "Allows CodeDeploy to call AWS services such as Auto Scaling on our behalf."
     force_detach_policies = false
     managed_policy_arns   = [
-        "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+        data.aws_iam_policy.codedeploy_managed_policy.arn
     ]
     max_session_duration  = 3600
     name                  = "${var.project}-codedeploy-role"
@@ -96,7 +98,10 @@ resource "aws_codedeploy_deployment_group" "deployment_group" {
   deployment_config_name = "CodeDeployDefault.HalfAtATime"
   deployment_group_name  = "demo-code-deployment"
   service_role_arn       = aws_iam_role.codedeploy.arn
-  tags                   = {}
+  tags                  = {
+      
+      "Name" = "${var.project}-codedeployment-group"
+    }
 
   auto_rollback_configuration {
 
@@ -121,11 +126,10 @@ resource "aws_codepipeline" "codepipeline" {
 
   name     = "demo"
   role_arn = aws_iam_role.pipeline.arn
-  tags     = {}
 
 
   artifact_store {
-    location = "artifact-for-codedeploy"
+    location = aws_s3_bucket.artifact.id
     type     = "S3"
   }
 
@@ -136,8 +140,8 @@ resource "aws_codepipeline" "codepipeline" {
       category = "Source"
       configuration = {
         "PollForSourceChanges" = "false"
-        "S3Bucket"             = "artifact-for-codedeploy"
-        "S3ObjectKey"          = "SampleWebApp.zip"
+        "S3Bucket"             = aws_s3_bucket.artifact.id
+        "S3ObjectKey"          = aws_s3_object.object.key
       }
       input_artifacts  = []
       name             = "Source"
@@ -173,6 +177,41 @@ resource "aws_codepipeline" "codepipeline" {
   depends_on = [
     aws_codedeploy_deployment_group.deployment_group
   ]
+
+  tags                  = {
+      
+      "Name" = "${var.project}-codepipeline"
+    }
 }
 
 
+resource "aws_s3_bucket" "artifact" {
+
+  bucket = var.bucket_name
+
+  tags = {
+    Name        = "${var.project}-artifact"
+    env = var.env
+  }
+}
+
+resource "aws_s3_bucket_acl" "artifact_acl" {
+  bucket = aws_s3_bucket.artifact.id
+  acl    = "private"
+}
+
+resource "aws_s3_bucket_versioning" "versioning_artifact" {
+  bucket = aws_s3_bucket.artifact.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_object" "object" {
+
+  bucket = aws_s3_bucket.artifact.id
+  key    = "SampleWebApp.zip"
+  source = "/home/cobsha/Desktop/goodbits/procedures/codepipeline/config_and_code/SampleWebApp.zip"
+
+  etag = filemd5("/home/cobsha/Desktop/goodbits/procedures/codepipeline/config_and_code/SampleWebApp.zip")
+}

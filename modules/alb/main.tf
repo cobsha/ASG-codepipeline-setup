@@ -1,10 +1,51 @@
+resource "aws_security_group"  "web_traffic" {
+    
+  name_prefix = "alb-"
+  description = "Allow http and https inbound traffic"
+    
+  ingress {
+
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = [ "0.0.0.0/0" ]
+    ipv6_cidr_blocks = [ "::/0" ]
+  }
+
+    
+  ingress {
+      
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = [ "0.0.0.0/0" ]
+    ipv6_cidr_blocks = [ "::/0" ]
+  }
+    
+    
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "alb-${var.project}-${var.env}",
+    project = var.project,
+    env = var.env
+  }
+}
+
+
 resource "aws_lb_target_group" "tg" {
   
   name_prefix = "${var.env}-"
   target_type = "instance"
   port     = 80
   protocol = "HTTP"
-  vpc_id   = data.aws_vpc.default.id
+  vpc_id   = var.vpc_id
   deregistration_delay = 120
   health_check {
     
@@ -30,11 +71,17 @@ resource "aws_lb" "lb" {
   name               = "${var.project}-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [var.sg]
-  subnets            = data.aws_subnets.default.ids
+  security_groups    = [aws_security_group.web_traffic.id]
+  subnets            = var.subnets
 
+  depends_on = [
+    aws_lb_target_group.tg,
+    aws_security_group.web_traffic
+  ]
   tags = {
-    Name = "${var.project}-alb"
+    
+    Name = "${var.project}-${var.env}-alb"
+    project = var.project
   }
 }
 
@@ -55,6 +102,7 @@ resource "aws_lb_listener" "httpslistener" {
       status_code  = "503"
     }
   }
+  
   tags = {
 
     project = var.project

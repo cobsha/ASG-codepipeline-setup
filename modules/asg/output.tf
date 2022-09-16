@@ -12,3 +12,8 @@ output "launch_template" {
   
   value = aws_launch_template.tmplt
 }
+
+output "template_sg" {
+  
+  value = aws_autoscaling_group.asg
+}

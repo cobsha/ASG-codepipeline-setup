@@ -25,3 +25,5 @@ subnets = [ "subnet-0cb244d676ad47723", "subnet-0e7c40917890df42a", "subnet-0218
 image_name = "nodeapp"
 
 sns_topic_name = "application_alerts"
+
+bucket_name = "artifact-cobbtech-demo"

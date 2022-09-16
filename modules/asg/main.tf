@@ -1,3 +1,99 @@
+resource "aws_iam_role" "instance_role" {
+  
+  assume_role_policy    = jsonencode(
+        {
+            Statement = [
+                {
+                    Action    = "sts:AssumeRole"
+                    Effect    = "Allow"
+                    Principal = {
+                        Service = "ec2.amazonaws.com"
+                    }
+                },
+            ]
+            Version   = "2012-10-17"
+        }
+    )
+
+  description           = "Allows EC2 instances to call AWS services on our behalf."
+  force_detach_policies = false
+  managed_policy_arns   = [
+    "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess",
+    "arn:aws:iam::aws:policy/CloudWatchAgentAdminPolicy",
+  ]
+  max_session_duration  = 3600
+  name                  = "${var.project}-instance-role"
+  path                  = "/"
+  tags                  = {
+    "Name" = "${var.project}-instance-role"
+  }
+
+}
+
+resource "aws_iam_instance_profile" "instance_role_profile" {
+
+    name        = "${var.project}-instance-role"
+    path        = "/"
+    role        = aws_iam_role.instance_role.name
+    depends_on = [
+      aws_iam_role.instance_role
+    ]
+    tags        = {
+    
+      Name = "${var.project}-instance-profile"
+    }
+}
+
+
+resource "aws_security_group"  "template_sg" {
+    
+  name_prefix = "${var.project}-"
+  description = "Allow http,https,ssh inbound traffic"
+    
+  ingress {
+
+    from_port        = 22
+    to_port          = 22
+    protocol         = "tcp"
+    cidr_blocks      = [ "0.0.0.0/0" ]
+    ipv6_cidr_blocks = [ "::/0" ]
+  }
+    
+    
+  ingress {
+
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    security_groups  = [ var.alb_sg ]
+  }
+
+    
+  ingress {
+      
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    security_groups  = [ var.alb_sg ]
+  }
+    
+    
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+  tags = {
+    Name = "template-instance-${var.project}-${var.env}",
+    project = var.project,
+    env = var.project
+  }
+}
+
+
 resource "aws_key_pair" "key" {
   
   key_name = "${var.project}"
@@ -10,29 +106,20 @@ resource "aws_key_pair" "key" {
 resource "aws_launch_template" "tmplt" {
 
   name_prefix   = "${var.env}-"
-  #block_device_mappings {
-  #device_name = "/dev/sda1"
-
-  #ebs {
-  #  volume_size = 1
-  #
-#delete_on_termination = true
-  #}
-  #}
-  image_id      = data.aws_ami.ami.image_id
+  image_id      = data.aws_ami.ami.id
   instance_type = var.instance_type
   key_name = aws_key_pair.key.key_name
   
-  #vpc_security_group_ids = [var.sg]
   network_interfaces {
     
-    security_groups = [var.sg]
+    security_groups = [aws_security_group.template_sg.id]
     associate_public_ip_address = true
     delete_on_termination = true
   }
 
   iam_instance_profile {
-    arn = var.instance_role
+
+    arn = aws_iam_instance_profile.instance_role_profile.arn
   }
 
   monitoring {
@@ -52,6 +139,10 @@ resource "aws_launch_template" "tmplt" {
 
     create_before_destroy = true
   }
+  depends_on = [
+    aws_key_pair.key,
+    aws_iam_instance_profile.instance_role_profile
+  ]
 
 }
 
@@ -60,9 +151,9 @@ resource "aws_autoscaling_group" "asg" {
   name = "${var.project}-ASG"
   availability_zones = var.az
   desired_capacity   = 2
-  max_size           = 3
-  min_size           = 1
-  default_cooldown = 180
+  max_size           = 4
+  min_size           = 2
+  default_cooldown = 300
   health_check_grace_period = 120
   default_instance_warmup = 120
   health_check_type = "EC2"
@@ -103,7 +194,7 @@ resource "aws_autoscaling_policy" "scaleout_cpu" {
   name                   = "ScaleOut-CPU"
   scaling_adjustment     = 2
   adjustment_type        = "ChangeInCapacity"
-  cooldown               = 120
+#  cooldown               = 300
   autoscaling_group_name = aws_autoscaling_group.asg.name
 }
 
@@ -134,7 +225,7 @@ resource "aws_autoscaling_policy" "scalein_cpu" {
   name                   = "Scalein-CPU"
   scaling_adjustment     = -1
   adjustment_type        = "ChangeInCapacity"
-  cooldown               = 120
+#  cooldown               = 120
   autoscaling_group_name = aws_autoscaling_group.asg.name
 }
 
@@ -165,7 +256,7 @@ resource "aws_autoscaling_policy" "scaleout_memory" {
   name                   = "ScaleOut-memory"
   scaling_adjustment     = 2
   adjustment_type        = "ChangeInCapacity"
-  cooldown               = 120
+#  cooldown               = 120
   autoscaling_group_name = aws_autoscaling_group.asg.name
 }
 
@@ -196,7 +287,7 @@ resource "aws_autoscaling_policy" "scalein_memory" {
   name                   = "ScaleIn-memory"
   scaling_adjustment     = -1
   adjustment_type        = "ChangeInCapacity"
-  cooldown               = 120
+ # cooldown               = 120
   autoscaling_group_name = aws_autoscaling_group.asg.name
 }
 
@@ -222,3 +313,4 @@ resource "aws_cloudwatch_metric_alarm" "memory_low" {
     "Name" = "MemoryUtilLow-30"
   }
 }
+

@@ -5,11 +5,11 @@ data "aws_ami" "ami" {
 
   filter {
     name   = "name"
-    values = ["nodeapp"]
+    values = [var.image_name]
   }
 
 }
 
 data "aws_sns_topic" "sns" {
-  name = "application_alerts"
+  name = var.sns_topic_name
 }

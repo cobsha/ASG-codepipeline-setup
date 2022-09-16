@@ -12,7 +12,7 @@ variable "env" {
   
 }
 
-variable "sg" {
+variable "alb_sg" {
   
 }
 
@@ -21,5 +21,13 @@ variable "tg" {
 }
 
 variable "key" {
+  
+}
+
+variable "image_name" {
+  
+}
+
+variable "sns_topic_name" {
   
 }
