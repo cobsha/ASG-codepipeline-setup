@@ -1,46 +1,21 @@
 variable "region" {}
+
 variable "env" {}
 
 variable "project" {}
 
-variable "sg" {}
-
 variable "domain" {}
-
-
-variable "instance_role" {}
 
 variable "instance_type" {}
 
-variable "az" {
-
-  type = list(any)
-}
-
 variable "cw_namespace" {}
 
-variable "key_name" {
+variable "key_name" {}
 
-}
+variable "image_name" {}
 
-variable "vpc_id" {
-  
-}
+variable "sns_topic_name" {}
 
-variable "subnets" {
+variable "bucket_name" {}
 
-  type = list(any)
-}
-
-
-variable "image_name" {
-  
-}
-
-variable "sns_topic_name" {
-  
-}
-
-variable "bucket_name" {
-  
-}
+variable "vpc_cidr" {}

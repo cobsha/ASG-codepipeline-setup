@@ -49,6 +49,7 @@ resource "aws_security_group"  "template_sg" {
     
   name_prefix = "${var.project}-"
   description = "Allow http,https,ssh inbound traffic"
+  vpc_id = var.vpc_id
     
   ingress {
 
@@ -110,10 +111,11 @@ resource "aws_launch_template" "tmplt" {
   instance_type = var.instance_type
   key_name = aws_key_pair.key.key_name
   
+  
   network_interfaces {
     
     security_groups = [aws_security_group.template_sg.id]
-    associate_public_ip_address = true
+    associate_public_ip_address = false
     delete_on_termination = true
   }
 
@@ -149,7 +151,8 @@ resource "aws_launch_template" "tmplt" {
 resource "aws_autoscaling_group" "asg" {
 
   name = "${var.project}-ASG"
-  availability_zones = var.az
+  #availability_zones = var.az
+  vpc_zone_identifier = var.priv_subnet
   desired_capacity   = 2
   max_size           = 4
   min_size           = 2

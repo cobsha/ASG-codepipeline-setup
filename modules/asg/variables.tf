@@ -1,33 +1,21 @@
-variable "instance_role" { }
+variable "instance_type" {}
 
-variable "instance_type" { }
+variable "cw_namespace" {}
 
-variable "az" { }
+variable "project" {}
 
-variable "cw_namespace" { }
+variable "env" {}
 
-variable "project" { }
+variable "alb_sg" {}
 
-variable "env" {
-  
-}
+variable "tg" {}
 
-variable "alb_sg" {
-  
-}
+variable "key" {}
 
-variable "tg" {
-  
-}
+variable "image_name" {}
 
-variable "key" {
-  
-}
+variable "sns_topic_name" {}
 
-variable "image_name" {
-  
-}
+variable "vpc_id" {}
 
-variable "sns_topic_name" {
-  
-}
+variable "priv_subnet" {}

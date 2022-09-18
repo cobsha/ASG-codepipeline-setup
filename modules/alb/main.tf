@@ -2,6 +2,7 @@ resource "aws_security_group"  "web_traffic" {
     
   name_prefix = "alb-"
   description = "Allow http and https inbound traffic"
+  vpc_id = var.vpc_id
     
   ingress {
 
@@ -45,6 +46,7 @@ resource "aws_lb_target_group" "tg" {
   target_type = "instance"
   port     = 80
   protocol = "HTTP"
+  
   vpc_id   = var.vpc_id
   deregistration_delay = 120
   health_check {
@@ -69,7 +71,8 @@ resource "aws_lb_target_group" "tg" {
 resource "aws_lb" "lb" {
 
   name               = "${var.project}-alb"
-  internal           = false
+  ip_address_type = "ipv4"
+  internal           = true
   load_balancer_type = "application"
   security_groups    = [aws_security_group.web_traffic.id]
   subnets            = var.subnets
@@ -78,33 +81,13 @@ resource "aws_lb" "lb" {
     aws_lb_target_group.tg,
     aws_security_group.web_traffic
   ]
+  lifecycle {
+
+    create_before_destroy = true
+  }
   tags = {
     
     Name = "${var.project}-${var.env}-alb"
-    project = var.project
-  }
-}
-
-resource "aws_lb_listener" "httpslistener" {
-  load_balancer_arn = aws_lb.lb.arn
-  port              = "443"
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = data.aws_acm_certificate.tls.arn
-
-  default_action {
-
-    type = "fixed-response"
-
-    fixed_response {
-      content_type = "text/html"
-      message_body = "<h1>Website not found!</h1>"
-      status_code  = "503"
-    }
-  }
-  
-  tags = {
-
     project = var.project
   }
 }
@@ -114,20 +97,24 @@ resource "aws_lb_listener" "httplistener" {
   port              = "80"
   protocol          = "HTTP"
 
-  default_action {
-    type = "redirect"
 
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
+default_action {
+
+  type = "fixed-response"
+
+  fixed_response {
+    content_type = "text/html"
+    message_body = "<h1>Website not found!</h1>"
+    status_code  = "503"
     }
   }
+
 }
 
 resource "aws_lb_listener_rule" "rule" {
   
-  listener_arn = aws_lb_listener.httpslistener.arn
+  #listener_arn = aws_lb_listener.httpslistener.arn
+  listener_arn = aws_lb_listener.httplistener.arn
   priority     = 1
 
   action {

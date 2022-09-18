@@ -1,19 +1,32 @@
+module "vpc" {
+  
+  source = "../modules/vpc"
+  project = var.project
+  env     = var.env
+  vpc_cidr = var.vpc_cidr
+  region = var.region
+}
 module "alb" {
 
   source  = "../modules/alb"
   env     = var.env
   project = var.project
   domain  = var.domain
-  vpc_id = var.vpc_id
-  subnets = var.subnets
+  vpc_id = module.vpc.vpc.id
+  subnets = module.vpc.public_subnet[*].id
+  depends_on = [
+    module.vpc
+  ]
+  
 }
 
 module "asg" {
 
   source        = "../modules/asg"
-  instance_role = var.instance_role
+ # instance_role = var.instance_role
   instance_type = var.instance_type
-  az            = var.az
+  vpc_id = module.vpc.vpc.id
+  priv_subnet            = module.vpc.private_subnet[*].id
   cw_namespace  = var.cw_namespace
   project       = var.project
   env           = var.env
@@ -27,6 +40,28 @@ module "asg" {
   ]
 }
 
+resource "aws_route53_zone" "private" {
+
+  name = var.domain
+
+  vpc {
+    vpc_id = module.vpc.vpc.id
+  }
+}
+
+
+resource "aws_route53_record" "subdomain" {
+
+  zone_id = aws_route53_zone.private.zone_id
+  name    = "${var.env}.${var.domain}"
+  type    = "A"
+
+  alias {
+    name                   = module.alb.alb.dns_name
+    zone_id                = module.alb.alb.zone_id
+    evaluate_target_health = true
+  }
+}
 
 resource "aws_iam_role" "codedeploy" {
 
@@ -45,7 +80,6 @@ resource "aws_iam_role" "codedeploy" {
     }
 
 }
-
 
 resource "aws_iam_policy" "pipeline" {
 
