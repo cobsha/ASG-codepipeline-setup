@@ -33,10 +33,11 @@ module "asg" {
   alb_sg        = module.alb.alb_sg.id
   tg            = module.alb.traget_group.arn
   key           = var.key_name
-  sns_topic_name = var.sns_topic_name
+  sns_topic_arn = aws_sns_topic.sns_topic.arn
   image_name = var.image_name
   depends_on = [
-    module.alb
+    module.alb,
+    aws_sns_topic_subscription.sns_subscription
   ]
 }
 
@@ -158,7 +159,7 @@ resource "aws_codedeploy_deployment_group" "deployment_group" {
 
 resource "aws_codepipeline" "codepipeline" {
 
-  name     = "demo"
+  name     = "${var.project}-${var.env}-pipeline"
   role_arn = aws_iam_role.pipeline.arn
 
 
@@ -214,7 +215,8 @@ resource "aws_codepipeline" "codepipeline" {
 
   tags                  = {
       
-      "Name" = "${var.project}-codepipeline"
+    Name = "${var.project}-codepipeline"
+    env = var.env
     }
 }
 
@@ -248,4 +250,21 @@ resource "aws_s3_object" "object" {
   source = "/home/cobsha/Desktop/goodbits/procedures/codepipeline/config_and_code/SampleWebApp.zip"
 
   etag = filemd5("/home/cobsha/Desktop/goodbits/procedures/codepipeline/config_and_code/SampleWebApp.zip")
+}
+
+
+resource "aws_sns_topic" "sns_topic" {
+  name = "${var.project}-${var.env}-sns"
+  display_name = "${var.project}-${var.env}-sns"
+  tags = {
+    Name = "${var.project}-${var.env}-sns"
+    env = var.env
+  }
+}
+
+resource "aws_sns_topic_subscription" "sns_subscription" {
+
+  topic_arn = aws_sns_topic.sns_topic.arn
+  protocol  = "email"
+  endpoint  = "cobsha1996@gmail.com"
 }

@@ -190,7 +190,7 @@ resource "aws_autoscaling_notification" "notification" {
     "autoscaling:EC2_INSTANCE_TERMINATE_ERROR",
   ]
 
-  topic_arn = data.aws_sns_topic.sns.arn
+  topic_arn = var.sns_topic_arn
 }
 
 resource "aws_autoscaling_policy" "scaleout_cpu" {
@@ -211,14 +211,14 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   statistic           = "Average"
   threshold           = "50"
   datapoints_to_alarm = "2"
-  ok_actions = [data.aws_sns_topic.sns.arn]
+  ok_actions = [var.sns_topic_arn]
 
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.asg.name
   }
 
   alarm_description = "CPU Utilization is above 50"
-  alarm_actions     = [aws_autoscaling_policy.scaleout_cpu.arn, data.aws_sns_topic.sns.arn]
+  alarm_actions     = [aws_autoscaling_policy.scaleout_cpu.arn, var.sns_topic_arn]
   tags = {
     "Name" = "CPUHigh-50"
   }
@@ -242,14 +242,14 @@ resource "aws_cloudwatch_metric_alarm" "cpu_low" {
   statistic           = "Average"
   threshold           = "30"
   datapoints_to_alarm = "2"
-  ok_actions = [data.aws_sns_topic.sns.arn]
+  ok_actions = [var.sns_topic_arn]
 
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.asg.name
   }
 
   alarm_description = "CPU Utilization is lower than 30"
-  alarm_actions     = [aws_autoscaling_policy.scalein_cpu.arn, data.aws_sns_topic.sns.arn]
+  alarm_actions     = [aws_autoscaling_policy.scalein_cpu.arn, var.sns_topic_arn]
   tags = {
     "Name" = "CPULow-30"
   }
@@ -273,14 +273,14 @@ resource "aws_cloudwatch_metric_alarm" "memory_high" {
   statistic           = "Average"
   threshold           = "50"
   datapoints_to_alarm = "2"
-  ok_actions = [data.aws_sns_topic.sns.arn]
+  ok_actions = [var.sns_topic_arn]
 
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.asg.name
   }
 
   alarm_description = "Memory Utilization is above 50"
-  alarm_actions     = [aws_autoscaling_policy.scaleout_memory.arn, data.aws_sns_topic.sns.arn]
+  alarm_actions     = [aws_autoscaling_policy.scaleout_memory.arn, var.sns_topic_arn]
   tags = {
     "Name" = "MemoryHigh-50"
   }
@@ -304,16 +304,15 @@ resource "aws_cloudwatch_metric_alarm" "memory_low" {
   statistic           = "Average"
   threshold           = "50"
   datapoints_to_alarm = "2"
-  ok_actions = [data.aws_sns_topic.sns.arn]
+  ok_actions = [var.sns_topic_arn]
 
   dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.asg.name
   }
 
   alarm_description = "Memory Utilization is lower than 30"
-  alarm_actions     = [aws_autoscaling_policy.scalein_memory.arn, data.aws_sns_topic.sns.arn]
+  alarm_actions     = [aws_autoscaling_policy.scalein_memory.arn, var.sns_topic_arn]
   tags = {
     "Name" = "MemoryUtilLow-30"
   }
 }
-

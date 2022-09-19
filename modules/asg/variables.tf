@@ -14,7 +14,7 @@ variable "key" {}
 
 variable "image_name" {}
 
-variable "sns_topic_name" {}
+variable "sns_topic_arn" {}
 
 variable "vpc_id" {}
 

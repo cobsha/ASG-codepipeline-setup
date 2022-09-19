@@ -9,7 +9,3 @@ data "aws_ami" "ami" {
   }
 
 }
-
-data "aws_sns_topic" "sns" {
-  name = var.sns_topic_name
-}

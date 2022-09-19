@@ -14,7 +14,7 @@ key_name = "key"
 
 image_name = "nodeapp"
 
-sns_topic_name = "application_alerts"
+#sns_topic_name = "application_alerts"
 
 bucket_name = "artifact-cobbtech-demo"
 
